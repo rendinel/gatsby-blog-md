@@ -1,0 +1,151 @@
+Hi everyone, in this tutorial series we will create a blog using Gatsby.js, Tailwind.css and sourcing data from MD file.
+
+Requirements
+To use Gatsby, we need to install some tools on our computer.
+
+Node.js version 14.15.0 +
+Gatsby 4.0 supports all Node.js versions greater than 14.15.0. To check if Node.js is already installed, open the terminal and enter
+
+node -v
+
+this should print a version number like this
+
+v16.16.0
+
+If you do not have Node.js on your machine, just go to https://nodejs.org/
+and follow the instructions for your operating system.
+Node ships with npm, a package manager that we will use to install Gatsby.
+
+Gatsby Command Line Interface (CLI)
+
+Gatsby CLI is a tool developed by the Gatsby team that allows us to perform standard operations like creating new Gatsby projects.To install it, open the terminal and run 
+
+npm i --location=global gatsby-cli
+
+to verify the installation 
+
+gatsby --help
+
+This should print a list of commands:
+
+Usage: gatsby <command> [options]
+
+Commands:
+  gatsby develop                      Start development server. Watches files,
+                                      rebuilds, and hot reloads if something
+                                      changes
+  gatsby build                        Build a Gatsby project.
+  gatsby serve                        Serve previously built Gatsby site.
+  gatsby info                         Get environment information for debugging
+                                      and issue reporting
+  gatsby clean                        Wipe the local gatsby environment
+                                      including built assets and cache
+  gatsby repl                         Get a node repl with context of Gatsby
+                                      environment, see (https://www.gatsbyjs.co
+                                      m/docs/gatsby-repl/)
+  gatsby plugin <cmd> [plugins...]    Useful commands relating to Gatsby
+                                      plugins
+  gatsby new [rootPath] [starter]     Create new Gatsby project.
+  gatsby telemetry                    Enable or disable Gatsby anonymous
+                                      analytics collection.
+  gatsby options [cmd] [key] [value]  View or set your gatsby-cli configuration
+                                      settings.
+
+Options:
+  --verbose                Turn on verbose output    [boolean] [default: false]
+  --no-color, --no-colors  Turn off the color in output
+                                                     [boolean] [default: false]
+  --json                   Turn on the JSON logger   [boolean] [default: false]
+  -h, --help               Show help                                  [boolean]
+  -v, --version            Show the version of the Gatsby CLI and the Gatsby
+                           package in the current project             [boolean]
+
+Project set up
+
+First create a folder and navigate to it from the terminal
+
+mkdir name-your-folder cd name-your-folder
+
+Then initialize a new package.json in this folder by typing 
+
+npm init -y
+
+after the package.json is initialized, we install react and gatsby
+
+npm i gatsby react react-dom
+
+after the installation is complete, open the directory in your IDE and we should see three elements package.json, node_modules and package-lock.json.
+
+Define development scripts
+
+Let's open the package.json and define some scripts 
+
+{
+  "name": "gatsby-md-blog",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "gatsby build",
+    "develop": "gatsby develop",
+    "start": "npm run develop",
+    "serve": "gatsby serve",
+    "clean": "gatsby clean"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "gatsby": "^4.22.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}
+
+Let us look at the purpose of these scripts:
+
+-build: creates a production-ready build of our website.
+
+-develop && start: these commands start the development server.
+
+-serve: command executed after the gatsby build command to start a local server running the build folder; useful for testing the production-ready build of our website.
+
+-clean: This command clears the local gatsby cache and all build data.
+
+Gatsby files
+
+Now let us create and check some files that Gatsby needs to work properly.In our root directory let's create
+
+gatsby-config.js
+
+This is the main configuration file for gatsby, it defines the site's metadata,plugins and other general configurations.Inside this file we start by adding 
+
+module.exports = {
+  plugins: [],
+}
+
+Later we will define inside the plugins array all plugins and their configuration.
+
+gatsby-node.js
+
+The code inside this file will be executed during the building process of our website.Leave it empty for now, as we will populate it later to create the pages dynamically.
+
+gatsby-browser.js
+
+The code in this file will be executed in the client's browser. Leave the file empty at the moment, as we will use it later to wrap the website's page in a global layout.
+
+gatsby-ssr.js
+
+The code in this file allows us to modify the content of our static HTML files as they are rendered server-side by Gatsby and Node.js. Leave the file empty so that we can later wrap the page in the same component that we will use in the Gatsby browser, so that the pages generated by SSR with Node.js are the same in the browser after hydrogenation.
+
+Let us also create a folder src in our root directory, where we will store all the frontend code of our website.
+
+.gitignore
+
+Last but not least, to do Github a favour, we create a .gitignore file so we do not have to push the heaviest module on Github
+
+node_modules/
+.cache/
+public
+
+That's all for the first part, in the second part we will create our first pages and connect them to the link component.

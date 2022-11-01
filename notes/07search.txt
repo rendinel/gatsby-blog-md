@@ -1,0 +1,377 @@
+In this part we will implement the search functionality in our blog.
+Let us start by installing our plugin and the packages needed to make our search functionality work.
+
+The Gatby plugin is needed to enable client side data search
+
+npm install --save gatsby-plugin-local-search
+
+We will use the useFlexSearch hook to turn our search query, index, and store into an array to display on our page
+
+npm install --save react-use-flexsearch
+
+We will use axios to fetch our data from the plugin 
+
+npm install axios
+
+Then we go into our gatsby-config.js, here we start by giving gatsby the name of the new plugin, then in options we start defining the name, a unique value for the search index, then in engine we select which search engine we want to use to create the index and in engineOptions we select the options that our engine should use, forward means that we will get a result even if we only enter the first letters of the index, since the index is checked in forward direction, in query we define the GraphQL query that will be used, to fetch all the data for the search index, in ref we specify the fields we will use as reference value for each document, in index we define the key we want to index, these values will be retrieved by the normalization function below, in store we define the key we want to store to display them on our page, finally in the normalization function we map the result of the query and return from it an array of elements to be indexed in the form of flat objects, these objects must contain the ref defined above.
+
+    {
+      resolve: `gatsby-plugin-local-search`,
+      options: {
+        name: `blogs`,
+        engine: `flexsearch`,
+        engineOptions: {
+          tokenize: 'forward',
+        },
+        query: `
+        {
+          allMarkdownRemark {
+            nodes {
+              id
+              frontmatter {
+                title
+                category
+                }
+                fields {
+                slug
+                }
+              } 
+            }
+        }
+        `,
+        ref: 'id',
+        index: ['title', 'category'],
+        store: ['id', 'title', 'category', 'slug'],
+        normalizer: ({ data }) =>
+          data.allMarkdownRemark.nodes.map((node) => ({
+            id: node.id,
+            title: node.frontmatter.title,
+            category: node.frontmatter.category,
+            slug: node.fields.slug,
+          })),
+      },
+    },
+
+After that, if we start the development server and everything is set up correctly in the left column, the localSearchBlogs field should appear here.
+
+Then we create the Search folder in our Components folder and store in it all the components we will use in our SearchSidebar. Let us start by creating SearchSidebar.js
+
+import React from 'react
+
+export default function SearchSidebar() { return ( SearchSidebar )
+}
+
+then we go into our Header.js component where we need to define toggleModal, a simple useState to toggle a boolean value responsible for showing or hiding our sidebar, and set our initial value to true, then we render our SearchSidebar component and pass it both toggleModal and setToggleModal as props
+
+import React, { useState } from 'react'
+import { AiFillCodeSandboxSquare, AiOutlineSearch } from 'react-icons/ai'
+import { Link } from 'gatsby'
+import SearchSidebar from '../search/SearchSidebar'
+
+export default function Header() {
+  const [toggleModal, setToggleModal] = useState(true)
+  return (
+    <>
+      {' '}
+      <header className='text-gray-600 body-font'>
+        <div className='container mx-auto flex flex-wrap p-5 flex-col md:flex-row items-center'>
+          <Link
+            to='/'
+            className='flex title-font font-medium items-center text-gray-900 mb-4 md:mb-0'
+          >
+            <AiFillCodeSandboxSquare className='w-10 h-10 text-white p-2 bg-indigo-500 rounded-full' />
+            <span className='ml-3 text-xl'>MyBlog</span>
+          </Link>
+          <nav className='md:mr-auto md:ml-4 md:py-1 md:pl-4 md:border-l md:border-gray-400	flex flex-wrap items-center text-base justify-center '>
+            <Link to='/' className='mr-5 hover:text-gray-900'>
+              Home
+            </Link>
+            <Link to='/blog' className='mr-5 hover:text-gray-900'>
+              Blog
+            </Link>
+          </nav>
+          <button
+            onClick={() => setToggleModal(!toggleModal)}
+            className='inline-flex items-center bg-gray-100 border-0 py-1 px-3 focus:outline-none hover:bg-gray-200 rounded text-base mt-4 md:mt-0'
+          >
+            <AiOutlineSearch className='w-4 h-4 ml-1' />
+          </button>
+        </div>
+      </header>
+      <SearchSidebar
+        setToggleModal={setToggleModal}
+        toggleModal={toggleModal}
+      />
+    </>
+  )
+}
+
+Then inside our SearchSidebar.js we start by destructuring toggleModal and setToggleModal and use them to toggle the hidden class on our sidebar, we continue by querying our publicIndexURL and publicStoreURL, these are 2 files stored in our public/static folder, and from these 2 files we will get our result, after that we assign our query to the data const, then we deconstruct publicIndexURL and publicStoreURL from data, then we create 2 states one searchQuery that we will use to set our search query and another blogsIndexStore that we will use to set our index and store for the blog and assign null, then we define an asynchronous function fetchOnFocus that if we already have our blogsIndexStore we simply return that value, otherwise we fetch our data, we use Promise.All to aggregate the two axios promises, that of publicIndexURL and that of publicStoreURL. From that we get back an array of objects and we just deconstruct our  blogsIndex and blogsStore and use our retrieved data to set our blogsIndexStore to an object with index and store as keys and blogsIndex and blogsStore as values.
+
+import React from 'react'
+import { useState } from 'react'
+import { graphql, useStaticQuery } from 'gatsby'
+import axios from 'axios'
+
+const query = graphql`
+  {
+    localSearchBlogs {
+      publicIndexURL
+      publicStoreURL
+    }
+  }
+`
+export default function SearchSidebar({ toggleModal, setToggleModal }) {
+  const data = useStaticQuery(query)
+  const { publicIndexURL, publicStoreURL } = data.localSearchBlogs
+  const [blogsIndexStore, setBlogsIndexStore] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const fetchOnFocus = async () => {
+    if (blogsIndexStore) return
+    const [{ data: blogsIndex }, { data: blogsStore }] = await Promise.all([
+      axios.get(`${publicIndexURL}`),
+      axios.get(`${publicStoreURL}`),
+    ])
+    setBlogsIndexStore({
+      index: blogsIndex,
+      store: blogsStore,
+    })
+  }
+  return (
+    <>
+      <aside
+        className={`${
+          toggleModal
+            ? 'hidden'
+            : 'overflow-y-auto overflow-x-hidden fixed top-0 left-0 z-50 w-90 h-screen bg-gray-200 ease-in-out ease duration-500 px-4'
+        }`}
+      >
+        <div>
+          <p>Search components</p>
+        </div>
+        <button
+          onClick={() => setToggleModal(!toggleModal)}
+          className='mt-2 text-white bg-indigo-500 border-0 py-2 px-8 focus:outline-none hover:bg-indigo-600 rounded text-lg'
+        >
+          Button
+        </button>
+      </aside>
+    </>
+  )
+}
+
+Then we create our SearchField component
+
+import React from 'react'
+
+export default function SearchField({ onFocus, value, setValue }) {
+  return (
+    <>
+      <label htmlFor='search' className='leading-7 text-sm text-gray-600'>
+        Search
+      </label>
+      <input
+        name='search'
+        type='text'
+        placeholder='Search'
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onFocus={onFocus}
+        className='w-full bg-gray-100 bg-opacity-50 rounded border border-gray-300 focus:border-indigo-500 focus:bg-transparent focus:ring-2 focus:ring-indigo-200 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out'
+      />
+    </>
+  )
+}
+
+and render it inside our SearchField
+
+import React from 'react'
+import { useState } from 'react'
+import { graphql, useStaticQuery } from 'gatsby'
+import axios from 'axios'
+import SearchField from './SearchField'
+
+const query = graphql`
+  {
+    localSearchBlogs {
+      publicIndexURL
+      publicStoreURL
+    }
+  }
+`
+export default function SearchSidebar({ toggleModal, setToggleModal }) {
+  const data = useStaticQuery(query)
+  const { publicIndexURL, publicStoreURL } = data.localSearchBlogs
+  const [blogsIndexStore, setBlogsIndexStore] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const fetchOnFocus = async () => {
+    if (blogsIndexStore) return
+    const [{ data: blogsIndex }, { data: blogsStore }] = await Promise.all([
+      axios.get(`${publicIndexURL}`),
+      axios.get(`${publicStoreURL}`),
+    ])
+    setBlogsIndexStore({
+      index: blogsIndex,
+      store: blogsStore,
+    })
+  }
+  return (
+    <>
+      <div
+        className={`${
+          toggleModal
+            ? 'hidden'
+            : 'overflow-y-auto overflow-x-hidden fixed top-0 left-0 z-50 w-90 h-screen bg-gray-200 ease-in-out ease duration-500 px-4'
+        }`}
+      >
+        <div>
+          <SearchField
+            value={searchQuery}
+            setValue={setSearchQuery}
+            onFocus={fetchOnFocus}
+          />
+        </div>
+        <button
+          onClick={() => setToggleModal(!toggleModal)}
+          className='mt-2 text-white bg-indigo-500 border-0 py-2 px-8 focus:outline-none hover:bg-indigo-600 rounded text-lg'
+        >
+          Button
+        </button>
+      </div>
+    </>
+  )
+}
+
+
+Here we get our fetchOnFocus function and searchQuery and setSearchQuery as props to fetch our data when we focus on the input and capture the user query inside the e object and set it to our value on each change. Then we create our SearchResult.js
+
+import React from 'react'
+import { Link } from 'gatsby'
+import { useFlexSearch } from 'react-use-flexsearch'
+import { capitalizeFirstLetter } from '../../utils/capitalizeFirstLetter'
+
+export default function SearchResult({
+  searchQuery,
+  blogsIndexStore,
+  toggleModal,
+  setToggleModal,
+  setSearchQuery,
+}) {
+  const blogsResult = useFlexSearch(
+    searchQuery,
+    JSON.stringify(blogsIndexStore.index),
+    blogsIndexStore.store
+  )
+  const reset = () => {
+    setToggleModal(!toggleModal)
+    setSearchQuery('')
+  }
+
+  if (blogsResult.length === 0)
+    return (
+      <div className='w-full bg-gray-100 bg-opacity-50 rounded border border-gray-300 mt-2 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out flex flex-row content-center justify-between'>
+        <div className='font-medium text-gray-900 title-font mb-2'>
+          No Result Found.
+        </div>
+      </div>
+    )
+  return (
+    <>
+      {blogsResult.map((result) => {
+        const { id, category, title, slug } = result
+        return (
+          <>
+            <div
+              key={id}
+              className='w-full bg-gray-100 bg-opacity-50 rounded border border-gray-300 mt-2 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out '
+            >
+              <div className='font-medium text-gray-900 title-font  truncated'>
+                <Link onClick={reset} to={`/blog${slug}`}>
+                  {title}
+                </Link>
+              </div>
+              <div className='font-semibold title-font text-gray-700'>
+                <Link onClick={reset} to={`/blog/${category}`}>
+                  {capitalizeFirstLetter(category)}
+                </Link>
+              </div>
+            </div>
+          </>
+        )
+      })}
+    </>
+  )
+}
+
+and render it inside our SearchSidebar
+
+import React from 'react'
+import { useState } from 'react'
+import { graphql, useStaticQuery } from 'gatsby'
+import axios from 'axios'
+import SearchField from './SearchField'
+import SearchResult from './SearchResult'
+
+const query = graphql`
+  {
+    localSearchBlogs {
+      publicIndexURL
+      publicStoreURL
+    }
+  }
+`
+export default function SearchSidebar({ toggleModal, setToggleModal }) {
+  const data = useStaticQuery(query)
+  const { publicIndexURL, publicStoreURL } = data.localSearchBlogs
+  const [blogsIndexStore, setBlogsIndexStore] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const fetchOnFocus = async () => {
+    if (blogsIndexStore) return
+    const [{ data: blogsIndex }, { data: blogsStore }] = await Promise.all([
+      axios.get(`${publicIndexURL}`),
+      axios.get(`${publicStoreURL}`),
+    ])
+    setBlogsIndexStore({
+      index: blogsIndex,
+      store: blogsStore,
+    })
+  }
+  return (
+    <>
+      <div
+        className={`${
+          toggleModal
+            ? 'hidden'
+            : 'overflow-y-auto overflow-x-hidden fixed top-0 left-0 z-50 w-90 h-screen bg-gray-200 ease-in-out ease duration-500 px-4'
+        }`}
+      >
+        <div>
+          <SearchField
+            value={searchQuery}
+            setValue={setSearchQuery}
+            onFocus={fetchOnFocus}
+          />
+          {searchQuery && blogsIndexStore ? (
+            <SearchResult
+              toggleModal={toggleModal}
+              setToggleModal={setToggleModal}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              blogsIndexStore={blogsIndexStore}
+            />
+          ) : (
+            ''
+          )}
+        </div>
+        <button
+          onClick={() => setToggleModal(!toggleModal)}
+          className='mt-2 text-white bg-indigo-500 border-0 py-2 px-8 focus:outline-none hover:bg-indigo-600 rounded text-lg'
+        >
+          Button
+        </button>
+      </div>
+    </>
+  )
+}
+
+Here we first look if our searchQuery and blogsIndexStore exist, if they exist we render our SearchResult and pass searchQuery, setSearchQuery and blogsIndexStore as props, then inside the component we deconstruct the props, we use the useFlexSearch hook, to turn our search query, index (which must be in a string format) and store into an array to display in our page, we also set up a reset function that closes our sidebar and resets our query value to an empty string, we check if the blogresult returns a result or not, if it returns no results we simply display No Result Found, but if it returns a value we simply map our blogsResult and render the data on our page. Now when we start our development server, we should have a sidebar where we can search for our posts. For this part that's all, in the next and last part we will create a seo component and put our site online.

@@ -1,0 +1,343 @@
+In this part, we will start by retrieving data from our site's metadata and later from the Markdown file to dynamically create our Hero and News components.
+Let us start by defining our siteMedata in our gatsby-config.js
+
+module.exports = {
+  siteMetadata: {
+    siteUrl: 'https://mywebsite.com',
+    name: 'John Doe',
+    role: 'Nutritionist, researcher and trainer',
+    bio: "Hi i'm John Doe a science nerd.",
+  },
+  plugins: [`gatsby-plugin-postcss`],
+}
+
+Metadata are snippets of text that describe the contents of a page. Later we'll use them to implement an SEO component.
+
+Let's continue by creating the folder MD in our root folder, then inside this folder we create another folder named blog and inside this folder we create 6 files named postnumber-blog-post.md(ex.01-blog-post.md) with the following frontmatter structure,
+
+--- 
+title: 
+desc: 
+date: 
+category: 
+---
+
+All Markdown files must start with a frontmatter, because with the right plugin, Gatsby will convert that data into GraphQL fields so we can use that data to programmatically generate pages and components for our website.
+
+Here is an example of a filled-in frontmatter with some Markdown data that will later become our article
+
+---
+title: My First Blog Post
+desc: Hi, this is my first post.Glossier echo park pug, church-key sartorial biodiesel vexillologist pop-up snackwave ramps cornhole. Marfa 3 wolf moon party messenger bag selfies, poke vaporware kombucha lumbersexual pork belly polaroid hoodie portland craft beer.
+date: 2020-06-20
+category: biology
+---
+
+# My Post
+
+Lorem ipsum dolor sit amet, consectetur adiscing elit. `Lorem ipsum dolor sit amet, consectetur adiscing elit.`
+
+Lorem ipsum dolor sit amet consectetur adipisicing elit. Quos aut, soluta necessitatibus dicta quod iure architecto dolore sunt veritatis ab distinctio aperiam accusamus? Excepturi nam praesentium rem sapiente mollitia rerum.Lorem ipsum dolor sit amet consectetur adipisicing elit. Quos aut, soluta necessitatibus dicta quod iure architecto dolore sunt veritatis ab distinctio aperiam accusamus?**Excepturi nam praesentium rem sapiente mollitia rerum.**
+
+<blockquote>
+  Lorem ipsum dolor sit amet consectetur adipisicing elit. Quos aut, soluta necessitatibus dicta quod iure architecto dolore sunt veritatis ab distinctio aperiam accusamus? Excepturi nam praesentium rem sapiente mollitia rerum.
+</blockquote>
+
+<blockquote display="info">
+  Lorem ipsum dolor sit amet consectetur adipisicing elit. Quos aut, soluta necessitatibus dicta quod iure architecto dolore sunt veritatis ab distinctio aperiam accusamus? Excepturi nam praesentium rem sapiente mollitia rerum.
+</blockquote>
+
+Pulling Data in Gatsby
+
+Pulling data in Gatsby
+
+In Gatsby, we pull data either from a local source located in our repo, such as a Markdown file in this tutorial, or from an external source such as a CMS, API, or database.No matter which source we choose, Gatsby will always use GraphQL to pull data. So if the data is already in a GraphQL format, we can retrieve it directly in Gatsby by calling the GraphQL api.If the data isn't already in a GraphQL format, we can convert it and retrieve it via one of the many Gatsby plugins, like the one we're about to use.After we have reprocessed the data, Gatsby has a tool called GraphiQL, which can be accessed by typing in the browser bar
+
+http://localhost:8000/__graphql
+
+With this tool we can perform very specific GraphQL queries that return only the data we need in a JSON format, so we can easily insert the data into our pages and components.
+
+The first plugin we'll install is needed to inform Gatsby where the local data comes from.
+
+npm install gatsby-source-filesystem
+
+After that we install the plugin that allows Gatsby to read Markdown files
+
+npm install gatsby-transformer-remark
+
+then we inform Gatsby in our gatsby-config.js about the new plugin and from where it need to gets the data from
+kijolh
+module.exports = {
+  siteMetadata: {
+    siteUrl: 'https://mywebsite.com',
+    name: 'Marco Rendine',
+    role: 'Nutritionist, researcher and trainer',
+    bio: "Hi i'm Marco Rendine a science nerd.",
+  },
+  plugins: [
+    `gatsby-plugin-postcss`,
+    `gatsby-transformer-remark`,
+    {
+      resolve: `gatsby-source-filesystem`,
+      options: {
+        name: `bio`,
+        path: `${__dirname}/MD/blog`,
+      },
+    },
+  ],
+}
+
+Then we start our server, go into our GraphiQl tool and run this query
+
+{
+  site {
+    siteMetadata {
+      name
+      siteUrl
+      role
+      bio
+    }
+  }
+}
+
+By running this query, we should retrieve the previously defined siteMedata in JSON format
+
+{
+  "data": {
+    "site": {
+      "siteMetadata": {
+        "name": "Marco Rendine",
+        "siteUrl": "https://mywebsite.com",
+        "role": "Nutritionist, researcher and trainer",
+        "bio": "Hi i'm Marco Rendine a science nerd."
+      }
+    }
+  },
+  "extensions": {}
+}
+
+Just in case you have never used the GraphiQL tool, it consists of 3 columns, the left one is the explorer and shows all the content we can get in Gatsby, we can use the explorer to create the query automatically just by clicking on the properties. In the middle column we can see the query we created and at the top we have a play button that we have to press to query the data that is shown in the right column in JSON format.
+
+Then execute this query
+
+{
+  allMarkdownRemark(limit: 3, sort: {fields: frontmatter___date, order: DESC}) {
+    nodes {
+      frontmatter {
+        category
+        date
+        desc
+        title
+      }
+    }
+  }
+}
+
+should display the 3 newest blogposts sorted by date in descending order
+
+{
+  "data": {
+    "allMarkdownRemark": {
+      "nodes": [
+        {
+          "frontmatter": {
+            "category": "biology",
+            "date": "2022-06-20T00:00:00.000Z",
+            "desc": "Hi, this is my sixth post.Glossier echo park pug, church-key sartorial biodiesel vexillologist pop-up snackwave ramps cornhole. Marfa 3 wolf moon party messenger bag selfies, poke vaporware kombucha lumbersexual pork belly polaroid hoodie portland craft beer.",
+            "title": "My Sixth Blog Post"
+          }
+        },
+        {
+          "frontmatter": {
+            "category": "biology",
+            "date": "2022-05-20T00:00:00.000Z",
+            "desc": "Hi, this is my fifth post.Glossier echo park pug, church-key sartorial biodiesel vexillologist pop-up snackwave ramps cornhole. Marfa 3 wolf moon party messenger bag selfies, poke vaporware kombucha lumbersexual pork belly polaroid hoodie portland craft beer.",
+            "title": "My Fifth Blog Post"
+          }
+        },
+        {
+          "frontmatter": {
+            "category": "biology",
+            "date": "2022-04-20T00:00:00.000Z",
+            "desc": "Hi, this is my fourth post.Glossier echo park pug, church-key sartorial biodiesel vexillologist pop-up snackwave ramps cornhole. Marfa 3 wolf moon party messenger bag selfies, poke vaporware kombucha lumbersexual pork belly polaroid hoodie portland craft beer.",
+            "title": "My Fourth Blog Post"
+          }
+        }
+      ]
+    }
+  },
+  "extensions": {}
+}
+
+After defining the query, Gatsby gives us 2 ways to inject data into our app, the first is the static query that can be used within a component, and the second is a dynamic query that we need to use when we get dynamic content within a page or within the Gatsby node.In this case, we will use a static query since we are working within a component.There are two ways to use a static query in Gatsby: the StaticQuery API or the useStaticQuery hook.We will use the useStaticQueryhook.
+Let us start by creating a home page folder in our components folder, then inside the home page folder we will create a Hero component
+
+import React from 'react'
+//we first import graphql and the useStaticQuery hook from gatsby
+import { graphql, useStaticQuery } from 'gatsby'
+
+export default function Hero() {
+  //we invoke our hook and pass our query to it
+  const data = useStaticQuery(graphql`
+    {
+      site {
+        siteMetadata {
+          bio
+          name
+        }
+      }
+    }
+  `)
+  //we destructure the data from the query and use them to populate our component
+  const {
+    site: {
+      siteMetadata: { name, bio },
+    },
+  } = data
+  return (
+    <section className='text-gray-600 body-font'>
+      <div className='container mx-auto flex px-5 py-24 md:flex-row flex-col items-center'>
+        <div className='lg:flex-grow md:w-1/2 lg:pr-24 md:pr-16 flex flex-col md:items-start md:text-left mb-16 md:mb-0 items-center text-center'>
+          <h1 className='title-font sm:text-4xl text-3xl mb-4 font-medium text-gray-900'>
+            Hi, I'm {name}
+          </h1>
+          <p className='mb-8 leading-relaxed'>{bio}</p>
+          <div className='flex justify-center'>
+            <button className='inline-flex text-white bg-indigo-500 border-0 py-2 px-6 focus:outline-none hover:bg-indigo-600 rounded text-lg'>
+              Button
+            </button>
+            <button className='ml-4 inline-flex text-gray-700 bg-gray-100 border-0 py-2 px-6 focus:outline-none hover:bg-gray-200 rounded text-lg'>
+              Button
+            </button>
+          </div>
+        </div>
+        <div className='lg:max-w-lg lg:w-full md:w-1/2 w-5/6'>
+          <img
+            className='object-cover object-center rounded'
+            alt='hero'
+            src='https://dummyimage.com/720x600'
+          />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+
+Then we create the HomePage.js component in our home page folder and import into it all the components to be inserted into the home page; at the moment we only import our Hero component
+
+import React from 'react'
+import Hero from './Hero'
+
+export default function HomePage() {
+  return <Hero/>
+}
+
+
+Finally, we import and render our HomePage component inside our index.js page
+
+import React from 'react'
+import HomePage from '../components/homepage/HomePage'
+
+export default function Index() {
+  return <HomePage />
+}
+
+Let's then proceed by creating a News.js file in the homepage folder
+
+import React from 'react'
+//we first import graphql and the useStaticQuery hook from gatsby
+import { graphql, useStaticQuery, Link } from 'gatsby'
+import { AiOutlineArrowRight } from 'react-icons/ai'
+
+export default function News() {
+  //we invoke our hook and pass our query to it
+  // we are telling the query to return only 3 item sorted by the frontmatter___date in descending order
+  //with the formatString we are formatting the date in a human redable way
+  const data = useStaticQuery(graphql`
+    {
+      allMarkdownRemark(
+        limit: 3
+        sort: { fields: frontmatter___date, order: DESC }
+      ) {
+        nodes {
+          frontmatter {
+            category
+            date(formatString: "MMMM Do, YYYY")
+            desc
+            title
+          }
+          id
+        }
+      }
+    }
+  `)
+  //we destructure our data and since nodes it's an array we are going to use the map method and some more destructuring in order to render the data on the screen
+  const {
+    allMarkdownRemark: { nodes },
+  } = data
+  return (
+    <section className='text-gray-600 body-font'>
+      <div className='container px-5 py-24 mx-auto'>
+        <div className='flex flex-wrap -m-4'>
+          {nodes.map((post) => {
+            const {
+              frontmatter: { category, date, title, desc, id },
+            } = post
+            return (
+              <div key={id} className='p-4 md:w-1/3'>
+                <div className='h-full border-2 border-gray-200 border-opacity-60 rounded-lg overflow-hidden'>
+                  <img
+                    className='lg:h-48 md:h-36 w-full object-cover object-center'
+                    src='https://dummyimage.com/720x400'
+                    alt='blog'
+                  />
+                  <div className='p-6'>
+                    <h2 className='tracking-widest text-xs title-font font-medium text-gray-400 mb-1'>
+                      {category.toUpperCase()}
+                    </h2>
+                    <h1 className='title-font text-lg font-medium text-gray-900 mb-3'>
+                      {title}
+                    </h1>
+                    <p className='leading-relaxed mb-3'>{desc}</p>
+                    <div className='flex items-center flex-wrap '>
+                      <Link
+                        to='/'
+                        className='text-indigo-500 inline-flex items-center md:mb-2 lg:mb-0'
+                      >
+                        Learn More
+                        <AiOutlineArrowRight className='w-4 h-4 ml-2' />
+                      </Link>
+                      <span className='text-gray-400 mr-3 inline-flex items-center lg:ml-auto md:ml-0 ml-auto leading-none text-sm pr-3 py-1 border-r-2 border-gray-200'>
+                        {date}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+Let us finish this part by also importing and rendering the news component within our HomePage component
+
+import React from 'react'
+import Hero from './Hero'
+import News from './News'
+
+export default function HomePage() {
+  return (
+    <>
+      <Hero />
+      <News />
+    </>
+  )
+}
+
+
+That's it for this fourth part, i will see you again in the next part where we will add pictures to our website.
+

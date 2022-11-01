@@ -1,0 +1,203 @@
+In this part of the tutorial we will start styling our page with tailwind css and creating a layout component that will wrap all our pages.
+
+Tailwind.css
+
+Let us start by installing tailwind.css in our Gatsby project
+
+npm install -D tailwindcss postcss autoprefixer gatsby-plugin-postcss
+
+We install postcss, the postcss plugin for Gatsby and tailwindcss. Postcss is a tool that transforms all our CSS using javascript. 
+
+then in gatsby-config.js we add the plugin
+
+module.exports = { plugins: [`gatsby-plugin-postcss`],
+}
+
+then we create postcss.config.js in the root directory of our project and so that postcss knows it must use the tailwindcss package, we add
+
+module.exports = () => ({
+  plugins: [require('tailwindcss')],
+})
+
+then execute in terminal
+
+npx tailwindcss init -p
+
+then inside the file
+
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './src/pages/*.{js,jsx,ts,tsx}',
+    './src/components/**/*.{js,jsx,ts,tsx}',
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+
+This is a Tailwind configuration file that we use to essentially tell Tailwind where to find all of our template files.
+
+Then we create a styles folder inside the src folder, and inside the styles folder we create a global.css folder where we add the tailwind directives for each tailwind's layer
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+Then we import this stylesheet into our gatby-browser.js and into our gatsby-ssr.js 
+
+import './src/styles/global.css'.
+
+Finally, on our index page, we add this class
+
+import React from 'react'
+import { Link } from 'gatsby'
+
+export default function Index() {
+  return (
+    <div>
+      <h1 className='text-5xl text-red-600'>Our HomePage</h1>
+      <Link to='/blog'>Blog</Link>
+    </div>
+  )
+}
+
+
+If you see that the h1 within the home page turns red and large after the server boots up, we're good to go and can proceed, otherwise just check the previous step again.
+
+Before we start building our component, we install the React icons package
+
+npm install react-icons --save
+
+After that we go to our src folder and create a components folder, then we create a layout folder in our components folder, then we create a Header.js file and define our header in it
+
+import React from 'react'
+import { AiFillCodeSandboxSquare, AiOutlineSearch } from 'react-icons/ai'
+import { Link } from 'gatsby'
+
+export default function Header() {
+  return (
+    <header className='text-gray-600 body-font'>
+      <div className='container mx-auto flex flex-wrap p-5 flex-col md:flex-row items-center'>
+        <Link
+          to='/'
+          className='flex title-font font-medium items-center text-gray-900 mb-4 md:mb-0'
+        >
+          <AiFillCodeSandboxSquare className='w-10 h-10 text-white p-2 bg-indigo-500 rounded-full' />
+          <span className='ml-3 text-xl'>MyBlog</span>
+        </Link>
+        <nav className='md:mr-auto md:ml-4 md:py-1 md:pl-4 md:border-l md:border-gray-400	flex flex-wrap items-center text-base justify-center'>
+          <Link to='/' className='mr-5 hover:text-gray-900'>
+            Home
+          </Link>
+          <Link to='/blog' className='mr-5 hover:text-gray-900'>
+            Blog
+          </Link>
+        </nav>
+        <button className='inline-flex items-center bg-gray-100 border-0 py-1 px-3 focus:outline-none hover:bg-gray-200 rounded text-base mt-4 md:mt-0'>
+          <AiOutlineSearch className='w-4 h-4 ml-1' />
+        </button>
+      </div>
+    </header>
+  )
+}
+
+
+then create a Footer.js and inside let's define our footer
+
+import React from 'react'
+import {
+  AiFillCodeSandboxSquare,
+  AiFillFacebook,
+  AiOutlineTwitter,
+  AiFillInstagram,
+  AiFillLinkedin,
+} from 'react-icons/ai'
+import { Link } from 'gatsby'
+
+export default function Footer() {
+  return (
+    <footer className='text-gray-600 body-font'>
+      <div className='container px-5 py-8 mx-auto flex items-center sm:flex-row flex-col'>
+        <Link
+          to='/'
+          className='flex title-font font-medium items-center text-gray-900 mb-4 md:mb-0'
+        >
+          <AiFillCodeSandboxSquare className='w-10 h-10 text-white p-2 bg-indigo-500 rounded-full' />
+          <span className='ml-3 text-xl'>MyBlog</span>
+        </Link>
+        <p className='text-sm text-gray-500 sm:ml-4 sm:pl-4 sm:border-l-2 sm:border-gray-200 sm:py-2 sm:mt-0 mt-4'>
+          © 2022 MyBlog —
+          <a
+            href='https://twitter.com'
+            className='text-gray-600 ml-1'
+            rel='noopener noreferrer'
+            target='_blank'
+          >
+            @myblog
+          </a>
+        </p>
+        <span className='inline-flex sm:ml-auto sm:mt-0 mt-4 justify-center sm:justify-start'>
+          <a href='https://facebook.com' className='text-gray-500'>
+            <AiFillFacebook className='w-5 h-5' />
+          </a>
+          <a href='https://twitter.com' className='ml-3 text-gray-500'>
+            <AiOutlineTwitter className='w-5 h-5' />
+          </a>
+          <a href='https://instagram.com' className='ml-3 text-gray-500'>
+            <AiFillInstagram className='w-5 h-5' />
+          </a>
+          <a href='https://linkedin.com' className='ml-3 text-gray-500'>
+            <AiFillLinkedin className='w-5 h-5' />
+          </a>
+        </span>
+      </div>
+    </footer>
+  )
+}
+
+
+then we create our Layout.js component
+
+import React from 'react'
+import Header from './Header'
+import Footer from './Footer'
+
+export default function Layout({ children }) {
+  return (
+    <>
+      <Header />
+      {children}
+      <Footer />
+    </>
+  )
+}
+
+here we are just importing our header and footer, we are getting as props and rendering our children this means that the component will show whatever is included in beetween the opening and closing tag, while calling the component, we are also wrapping everything inside a React fragment <></> to avoid adding an extra node to our Dom.
+
+Then we go into gatsby-browser.js 
+
+import React from 'react'
+import './src/styles/global.css'
+import Layout from './src/components/layout/Layout'
+
+export const wrapPageElement = ({ element, props }) => (
+  <Layout {...props}>{element}</Layout>
+)
+
+Here we wrap each page of our website in our layout using the Gatsby browser api. Inside the prop we find the element and the props, when we render the component we need to pass the children, which in this case are the element, and also pass all the props.
+
+Also, since we want our pages generated by ssr to be the same in the browser after hydrogenation, we need to add the same code in our gatsby-ssr.js 
+
+import React from 'react'
+import './src/styles/global.css'
+import Layout from './src/components/layout/Layout'
+
+export const wrapPageElement = ({ element, props }) => (
+  <Layout {...props}>{element}</Layout>
+)
+
+Once we do this and start our server, we should find that our entire application is wrapped in our layout.
+
+That's all for this part, in part 04 we will retrieve data from our Markdown file.

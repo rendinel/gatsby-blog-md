@@ -1,0 +1,525 @@
+In this part of the tutorial, we will dynamically generate our pages using the data from our Markdown files.
+First we delete the blog.js file in the pages folder, then we create a templates folder in the src folder where we create the blog-list.js file and leave it empty for now, then we create a blog folder in the components folder where we store all the components we will use in our blog. We start by creating the BlogLayout.js component
+
+import React from 'react'
+
+export default function BlogLayout({ children }) {
+  return (
+    <section className='text-gray-600 body-font overflow-hidden'>
+      <div className='container px-5 py-24 mx-auto'>
+        <div className='-my-8 divide-y-2 divide-gray-100'>{children}</div>
+      </div>
+    </section>
+  )
+}
+
+then a BlogPosts.js component where we will accept some props to generate our pages 
+
+import React from 'react'
+import { Link } from 'gatsby'
+import { AiOutlineArrowRight } from 'react-icons/ai'
+
+export default function BlogPosts({ date, title, category, desc, slug }) {
+  return (
+    <div className='py-8 flex flex-wrap md:flex-nowrap'>
+      <div className='md:w-64 md:mb-0 mb-6 flex-shrink-0 flex flex-col'>
+        <span className='font-semibold title-font text-gray-700'>
+          {category.toUpperCase()}
+        </span>
+        <span className='mt-1 text-gray-500 text-sm'>{date}</span>
+      </div>
+      <div className='md:flex-grow'>
+        <h2 className='text-2xl font-medium text-gray-900 title-font mb-2'>
+          {title}
+        </h2>
+        <p className='leading-relaxed'>{desc}</p>
+        <Link
+          to={`${slug}`}
+          className='text-indigo-500 inline-flex items-center mt-4'
+        >
+          Learn More
+          <AiOutlineArrowRight className='w-4 h-4 ml-2' />
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+then a Pagination.js component, where we will also accept some props to paginate our posts
+
+import { Link } from 'gatsby'
+import React from 'react'
+
+export default function Pagination({ currentPage, numberOfPages }) {
+  const prevPage =
+    currentPage - 1 === 0 || currentPage - 1 === 1
+      ? `/blog`
+      : `/blog/${currentPage - 1}`
+
+  const nextPage =
+    currentPage === numberOfPages ? `/blog` : `/blog/${currentPage + 1}`
+  return (
+    <div className='flex justify-center w-full'>
+      <Link to={prevPage}>
+        <button
+          className='mt-4 inline-flex text-white bg-indigo-500 border-0 py-2 px-6 focus:outline-none hover:bg-indigo-600 rounded text-lg disabled:bg-gray-200 disabled:text-gray-300'
+          disabled={currentPage === 1}
+        >
+          Prev
+        </button>
+      </Link>
+      <Link to={nextPage}>
+        <button
+          disabled={currentPage === numberOfPages}
+          className='mt-4 ml-4 inline-flex text-white bg-indigo-500 border-0 py-2 px-6 focus:outline-none hover:bg-indigo-600 rounded text-lg disabled:bg-gray-200 disabled:text-gray-300'
+        >
+          Next
+        </button>
+      </Link>
+    </div>
+  )
+}
+
+
+Then we go to our gatsby-node.js and start programmatically generating the slug for our blog pages
+
+const { createFilePath } = require(`gatsby-source-filesystem`)
+
+exports.onCreateNode = ({ node, getNode, actions }) => {
+  const { createNodeField } = actions
+  if (node.internal.type === `MarkdownRemark`) {
+    const slug = createFilePath({ node, getNode, basePath: `pages` })
+    createNodeField({
+      node,
+      name: `slug`,
+      value: slug,
+    })
+  }
+}
+
+Here we start by importing the createFilePath function from the gatsby-source-filesystem, this function generates the slug for us, then we call the onCreateNode function which allows us to manipulate the fields inside a newly generated node, and we use this function to add a slug field if the node is of type MarkdownRemark.
+
+If everything is correct by running this query in GraphiQl
+
+query MyQuery {
+  markdownRemark {
+    fields {
+      slug
+    }
+  }
+}
+
+you are going to receive this back
+
+{
+  "data": {
+    "markdownRemark": {
+      "fields": {
+        "slug": "/01-blog-post/"
+      }
+    }
+  },
+  "extensions": {}
+}
+
+After that, we go back to our gatsby-node.js.
+
+const path = require(`path`)
+const { createFilePath } = require(`gatsby-source-filesystem`)
+
+exports.createPages = async ({ actions, graphql }) => {
+  const { createPage } = actions
+
+  const blogListTemplate = path.resolve(`./src/templates/blog-list.js`)
+  const blogPostsPerPage = 3
+
+  const ourQuery = await graphql(`
+    {
+      allMarkdownRemark {
+        nodes {
+          fields {
+            slug
+          }
+          frontmatter {
+            category
+          }
+        }
+      }
+    }
+  `)
+
+  if (ourQuery.errors) throw ourQuery.errors
+
+  const allBlogPosts = ourQuery.data.allMarkdownRemark.nodes
+
+  const totalBlogListPages = Math.ceil(allBlogPosts.length / blogPostsPerPage)
+  Array.from({ length: totalBlogListPages }).forEach((_, index) => {
+    createPage({
+      path: index === 0 ? '/blog' : `/blog/${index + 1}`,
+      component: blogListTemplate,
+      context: {
+        limit: blogPostsPerPage,
+        offset: index * blogPostsPerPage,
+        numberOfPages: totalBlogListPages,
+        currentPage: index + 1,
+      },
+    })
+  })
+}
+
+exports.onCreateNode = ({ node, getNode, actions }) => {
+  const { createNodeField } = actions
+  if (node.internal.type === `MarkdownRemark`) {
+    const slug = createFilePath({ node, getNode, basePath: `pages` })
+    createNodeField({
+      node,
+      name: `slug`,
+      value: slug,
+    })
+  }
+}
+
+After that, we go back to our gatsby-node.js.
+
+Here we use the createPages function to create pages programmatically, inside the function we start by destructuring the createPage function from the actions object, then we define the path to our template and assign it to the blogListTemplate constant, then we define how many posts we want to display on our pages and assign it to the blogPostsPerPage constant, then we define the query to collect all the data we need, and an if statement that will throw an error if something goes wrong while querying the data, if no error occurs we access the data we are querying and assign it to the constant allBlogPosts, we continue, by defining a constant that calculates how many pages we will have, by dividing the length of our allBlogPosts array by the previously defined blogPostsPerPage, finally we create an array that has the length of totalBlogListPages and loop through it using the forEach function, for each index we use the createPage action, to this function we specify the path where we want the page to be, this will be '/blog' if the index is equal to 0 or '/blog/${index + 1} if the index is higher than 0, then we specify the component we want to use as a template, then we have to specify the context in which we pass some data to our BlogList component.
+
+Then we go into our BlogList template and here we start retrieving the data we need with a page query based on our context. Inside this query, after calling it blogListQuery, we define in the parenthesis the variable we expect, what kind of data we expect (in this case integer), and that is required with the exclamation mark, Then we sort our post by date in ascending order, we limit to the limit variable (if we call a variable, the $ sign is required) we pass from our context, and how much we skip is defined by the offset we pass from the context. Then we deconstruct the data we need from the context, which is accessible with the pageContext object, and we also deconstruct the nodes we query and give them a Posts alias.Finally, we can render our BlogLayout component and map our Posts into it, deconstruct the data, and pass it to our BlogPost and Pagination components.
+
+import React from 'react'
+import { graphql } from 'gatsby'
+import BlogLayout from '../components/blog/BlogLayout'
+import Pagination from '../components/blog/Pagination'
+import BlogPosts from '../components/blog/BlogPosts'
+
+export default function BlogList({ data, pageContext }) {
+  const { currentPage, numberOfPages } = pageContext
+  const {
+    allMarkdownRemark: { nodes: posts },
+  } = data
+  return (
+    <BlogLayout>
+      {posts.map((post) => {
+        const {
+          fields: { slug },
+          frontmatter: { date, title, category, desc },
+        } = post
+        return (
+          <BlogPosts
+            key={slug}
+            slug={slug}
+            date={date}
+            title={title}
+            category={category}
+            desc={desc}
+          />
+        )
+      })}
+      <Pagination currentPage={currentPage} numberOfPages={numberOfPages} />
+    </BlogLayout>
+  )
+}
+
+export const pageQuery = graphql`
+  query blogListQuery($limit: Int!, $offset: Int!) {
+    allMarkdownRemark(
+      limit: $limit
+      skip: $offset
+      sort: { fields: frontmatter___date, order: DESC }
+    ) {
+      nodes {
+        frontmatter {
+          date(formatString: "MMMM Do, YYYY")
+          title
+          category
+          desc
+        }
+        fields {
+          slug
+        }
+      }
+    }
+  }
+`
+We start our development server and if everything is correct, we can access our main blog page at this address 
+
+http://localhost:8000/blog.
+
+the pagination component should also work and show 3 posts per page.
+
+Then we create our category pages, first we go into our gatsby-node.js and define the categoryTemplate we are about to create, then we iterate over all our blog posts and use the create page function where we define the path where we want to create the page, the template we want to use and in context the unique value we want to use to create the page
+
+const path = require(`path`)
+const { createFilePath } = require(`gatsby-source-filesystem`)
+
+exports.createPages = async ({ actions, graphql }) => {
+  const { createPage } = actions
+
+  const blogListTemplate = path.resolve(`./src/templates/blog-list.js`)
+  const blogPostsPerPage = 3
+
+  const categoryTemplate = path.resolve(`./src/templates/category.js`)
+
+  const ourQuery = await graphql(`
+    {
+      allMarkdownRemark {
+        nodes {
+          fields {
+            slug
+          }
+          frontmatter {
+            category
+          }
+        }
+      }
+    }
+  `)
+
+  if (ourQuery.errors) throw ourQuery.errors
+
+  const allBlogPosts = ourQuery.data.allMarkdownRemark.nodes
+  const totalBlogListPages = Math.ceil(allBlogPosts.length / blogPostsPerPage)
+  Array.from({ length: totalBlogListPages }).forEach((_, index) => {
+    createPage({
+      path: index === 0 ? '/blog' : `/blog/${index + 1}`,
+      component: blogListTemplate,
+      context: {
+        limit: blogPostsPerPage,
+        offset: index * blogPostsPerPage,
+        numberOfPages: totalBlogListPages,
+        currentPage: index + 1,
+      },
+    })
+  })
+
+  allBlogPosts.forEach((blogCat) => {
+    createPage({
+      path: `/blog/${blogCat.frontmatter.category}`,
+      component: categoryTemplate,
+      context: { category: blogCat.frontmatter.category },
+    })
+  })
+}
+
+exports.onCreateNode = ({ node, getNode, actions }) => {
+  const { createNodeField } = actions
+  if (node.internal.type === `MarkdownRemark`) {
+    const slug = createFilePath({ node, getNode, basePath: `pages` })
+    createNodeField({
+      node,
+      name: `slug`,
+      value: slug,
+    })
+  }
+}
+
+
+Then we go into our src/templates folder and create category.js, then inside the file
+
+import React from 'react'
+import { graphql } from 'gatsby'
+import BlogLayout from '../components/blog/BlogLayout'
+import BlogPosts from '../components/blog/BlogPosts'
+
+export default function Category({ data }) {
+  const {
+    allMarkdownRemark: { nodes: posts },
+  } = data
+  return (
+    <BlogLayout>
+      {posts.map((post) => {
+        const {
+          fields: { slug },
+          frontmatter: { date, title, category, desc },
+        } = post
+        return (
+          <BlogPosts
+            key={slug}
+            slug={slug}
+            date={date}
+            title={title}
+            category={category}
+            desc={desc}
+          />
+        )
+      })}
+    </BlogLayout>
+  )
+}
+
+export const pageQuery = graphql`
+  query categoryQuery($category: String!) {
+    allMarkdownRemark(
+      sort: { fields: frontmatter___date, order: DESC }
+      filter: { frontmatter: { category: { eq: $category } } }
+    ) {
+      nodes {
+        frontmatter {
+          date(formatString: "MMMM Do, YYYY")
+          title
+          category
+          desc
+        }
+        fields {
+          slug
+        }
+      }
+    }
+  }
+`
+It's pretty much the same story heard inside blog-list.js, we have our dinamic query that receive the category variable which will be a string and use it to get our posts filtered based on the category frontmatter, then we deconstruct our data and render them.
+
+To finish this section, we generate the blogpost page. In the gatsby-node.js, we simply add the template and send the slug as a unique value from the context
+
+const path = require(`path`)
+const { createFilePath } = require(`gatsby-source-filesystem`)
+
+exports.createPages = async ({ actions, graphql }) => {
+  const { createPage } = actions
+
+  const blogListTemplate = path.resolve(`./src/templates/blog-list.js`)
+  const blogPostsPerPage = 3
+
+  const categoryTemplate = path.resolve(`./src/templates/category.js`)
+
+  const postTemplate = path.resolve(`./src/templates/single-post.js`)
+
+  const ourQuery = await graphql(`
+    {
+      allMarkdownRemark {
+        nodes {
+          fields {
+            slug
+          }
+          frontmatter {
+            category
+          }
+        }
+      }
+    }
+  `)
+
+  if (ourQuery.errors) throw ourQuery.errors
+
+  const allBlogPosts = ourQuery.data.allMarkdownRemark.nodes
+  const totalBlogListPages = Math.ceil(allBlogPosts.length / blogPostsPerPage)
+  Array.from({ length: totalBlogListPages }).forEach((_, index) => {
+    createPage({
+      path: index === 0 ? '/blog' : `/blog/${index + 1}`,
+      component: blogListTemplate,
+      context: {
+        limit: blogPostsPerPage,
+        offset: index * blogPostsPerPage,
+        numberOfPages: totalBlogListPages,
+        currentPage: index + 1,
+      },
+    })
+  })
+
+  allBlogPosts.forEach((blogCat) => {
+    createPage({
+      path: `/blog/${blogCat.frontmatter.category}`,
+      component: categoryTemplate,
+      context: { category: blogCat.frontmatter.category },
+    })
+  })
+
+  allBlogPosts.forEach((blogPost) => {
+    createPage({
+      path: `/blog${blogPost.fields.slug}`,
+      component: postTemplate,
+      context: { slug: blogPost.fields.slug },
+    })
+  })
+}
+
+exports.onCreateNode = ({ node, getNode, actions }) => {
+  const { createNodeField } = actions
+  if (node.internal.type === `MarkdownRemark`) {
+    const slug = createFilePath({ node, getNode, basePath: `pages` })
+    createNodeField({
+      node,
+      name: `slug`,
+      value: slug,
+    })
+  }
+}
+
+then inside our src assets we define our template
+
+import React from 'react'
+import { graphql } from 'gatsby'
+import { GatsbyImage, getImage } from 'gatsby-plugin-image'
+import { Link } from 'gatsby'
+
+export default function SinglePost({ data }) {
+  const {
+    allMarkdownRemark: { nodes },
+  } = data
+  const coverImg = getImage(nodes[0].frontmatter.cover)
+  return (
+    <div className='container w-full md:max-w-3xl mx-auto'>
+      <div className='w-full px-4 md:px-6 text-xl text-gray-900 leading-normal'>
+        <div className='font-sans'>
+          <p className='text-base md:text-sm text-blue-500 font-bold'>
+            &lt;
+            <Link
+              to='/blog'
+              className='text-base md:text-sm text-blue-500 font-bold no-underline hover:underline'
+            >
+              BACK TO BLOG
+            </Link>
+          </p>
+          <h1 className='font-bold font-sans break-normal text-blue-500 pt-6 pb-2 text-3xl md:text-4xl'>
+            {nodes[0].frontmatter.title}
+          </h1>
+          <h3 className='text-sm md:text-base font-normal text-gray-600 pt-2 pb-2'>
+            Category:
+            <Link to={`/blog/${nodes[0].frontmatter.category}`}>
+              {nodes[0].frontmatter.category.toUpperCase()}
+            </Link>
+          </h3>
+          <p className='text-sm md:text-base font-normal text-gray-600'>
+            {nodes[0].frontmatter.date}
+          </p>
+        </div>
+        <GatsbyImage
+          as='div'
+          className='h-full w-full mt-4'
+          imgClassName='object-cover object-center '
+          layout='fullWidth'
+          image={coverImg}
+          alt={`${nodes[0].frontmatter.title} cover image`}
+        />
+        <div
+          className='prose max-w-5xl'
+          dangerouslySetInnerHTML={{ __html: nodes[0].html }}
+        />
+      </div>
+    </div>
+  )
+}
+
+export const pageQuery = graphql`
+  query singlePostQuery($slug: String!) {
+    allMarkdownRemark(filter: { fields: { slug: { eq: $slug } } }) {
+      nodes {
+        fields {
+          slug
+        }
+        frontmatter {
+          category
+          date(formatString: "MMMM Do, YYYY")
+          desc
+          title
+          cover {
+            childImageSharp {
+              gatsbyImageData(width: 720, placeholder: BLURRED)
+            }
+          }
+        }
+        html
+      }
+    }
+  }
+`
+Here we have our dynamic query that takes the slug as a variable and then we use the fetched data to populate our page. The only difference worth mentioning is that we also source html within our query, this contain the markdown body and will allow us to render the markdown body within our page. To render the content we need to inject the page with the prop dangerouslySetInnerHTML, this prop is usually considered dangerous because if the user can edit the content they could be exposed to cross-site scripting attacks, but since the content in our case is static and defined by us there is no need to worry.

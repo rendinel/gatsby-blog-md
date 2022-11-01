@@ -1,0 +1,113 @@
+Hi everyone, in this section we will create our first pages and link one page to another by using the Link component
+
+Pages
+
+Let us start by creating a new folder inside the src folder and call it pages-folder, where each file inside this folder will be treated like a route by Gatsby
+
+-src/pages/index.js will navigate to ourwebsite.com
+
+-src/pages/portfolio.js will navigate to ourwebsite.com/portfolio
+
+-src/pages/404.js is the only exception, as it will navigate to any page that does not exist.
+
+This also applies to subfolders, so
+
+-src/blog/first-post.js navigates to ourwebsite.com/blog/first-post
+
+Index page
+
+Inside the pages folder, we create an index.js file that becomes the homepage of our website
+
+import React from 'react'
+
+export default function Index() {
+  return (
+    <div>
+      <h1>Our HomePage</h1>
+    </div>
+  )
+}
+
+Let's also create a blog.js that will become the blog's home page
+
+import React from 'react'
+
+export default function Blog() {
+  return (
+    <div>
+      <h1>Blog HomePage</h1>
+    </div>
+  )
+}
+
+and a 404.js page that Gatsby will display  every time we try to access a non-existent page.
+
+import React from 'react'
+
+export default function pageNotFound() {
+  return (
+    <div>
+      <h1>The page you were looking for doesen't exist</h1>
+    </div>
+  )
+}
+
+Let's start our development server by typing gatsby develop in our terminal
+and once the server is up and running, we can access the three pages we created by typing into the browser
+
+http://localhost:8000/
+http://localhost:8000/blog
+http://localhost:8000/404 (once we go into production, a 404 page appears every time we try to access a page that doesn't exist)
+
+The browser should now display the title we defined earlier, and we can proceed with linking our page with the link component.
+
+Link component
+For internal page, instead of using the a tag we need to use the link component in order to navigate through them.The Link component work just like an a tag, with one important difference: it allows prefetching, i.e. loading the resource before it's needed, so that the waiting time is reduced when the resource is needed.
+
+Let's start by adding the Link component to index.js 
+
+import React from 'react'
+import { Link } from 'gatsby'
+
+export default function Index() {
+  return (
+    <div>
+      <h1>Our HomePage</h1>
+      <Link to='/blog'>Blog</Link>
+    </div>
+  )
+}
+
+then inside blog.js
+
+import React from 'react'
+import { Link } from 'gatsby'
+
+export default function Blog() {
+  return (
+    <div>
+      <h1>Blog HomePage</h1>
+      <Link to='/'>Back to HomePage</Link>
+    </div>
+  )
+}
+
+The Link component has a prop that we use to define the page we want to navigate to. So if we pass '/' we navigate to the homepage, if we pass '/blog' we navigate to the blog page.
+If everything is correct, we can navigate from one page to another by clicking on the link.
+
+Programmatic navigation 
+It's also possible to navigate when a certain condition is met, such as when the user performs a certain action, to give an example of what can be accomplished with the navigate function. So let's go to our 404 page
+
+import React from 'react'
+import { navigate } from 'gatsby'
+
+export default function pageNotFound() {
+  return (
+    <div>
+      <h1>The page you were looking for doesen't exist</h1>
+      <button onClick={() => navigate('/')}>Back Home</button>
+    </div>
+  )
+}
+
+If everything is correct, we can navigate back to our home page by clicking the button. That's it for this part, see you again in part 03 where we will start styling our page with tailwind.css

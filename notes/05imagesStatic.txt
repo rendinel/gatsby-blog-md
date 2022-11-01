@@ -1,0 +1,465 @@
+Gatsby image
+
+Images are ubiquitous on the web, but they contribute the most to the size of a web page, accounting for up to 45% of the total page size. To optimize images, responsive image features are built into the latest browsers: Instead of accepting a single image source, the browser accepts a number of sources that it uses to load an image at different sizes, depending on the size of the device.Another technique we can use in React is lazy loading, which allows us to load the image at a later time to improve the speed of the website and reduce the user's data consumption.
+In Gatsby, this process is possible thanks to the Gatsby Image plugin. This plugin takes care of the lazy loading with 2 React image components, the StaticImage and the GatsbyImage.
+
+Let's start with the installation of the plugin needed to work with images in Gatsby
+
+npm install gatsby-plugin-image gatsby-plugin-sharp gatsby-source-filesystem gatsby-transformer-sharp
+
+Next, we create an "assets" folder in our src folder, then navigate to the "assets" folder and paste the image we want to use for the Hero component.
+
+After that, we go into our gatsby-config.js to add our plugins
+
+After that, we add our plugins in our gatsby-config.js
+
+module.exports = {
+  siteMetadata: {
+    siteUrl: 'https://mywebsite.com',
+    name: 'John Doe',
+    role: 'Nutritionist, researcher and trainer',
+    bio: "Hi i'm John Doe a science nerd.",
+  },
+  plugins: [
+    `gatsby-plugin-postcss`,
+    `gatsby-transformer-remark`,
+    `gatsby-plugin-image`,
+    `gatsby-plugin-sharp`,
+    `gatsby-transformer-sharp`,
+    {
+      resolve: `gatsby-source-filesystem`,
+      options: {
+        name: `bio`,
+        path: `${__dirname}/MD/blog`,
+      },
+    },
+  ],
+}
+
+After that we start the development server to check if everything works.
+
+StaticImage 
+
+Since the image in the Hero component will always be the same, we will implement it using the StaticImage component. As the name suggests, this component is used for situations like this where the image does not change. This component does not accept any props from the parent component and the image we pass to it must be in one of the following formats: png, jpg, jpeg, webp or avif.
+
+Then we go to our Hero component and insert the following code
+
+import React from 'react'
+import { graphql, useStaticQuery } from 'gatsby'
+import { StaticImage } from 'gatsby-plugin-image'
+
+export default function Hero() {
+  const data = useStaticQuery(graphql`
+    {
+      site {
+        siteMetadata {
+          bio
+          name
+        }
+      }
+    }
+  `)
+  const {
+    site: {
+      siteMetadata: { name, bio },
+    },
+  } = data
+  return (
+    <section className='text-gray-600 body-font'>
+      <div className='container mx-auto flex px-5 py-24 md:flex-row flex-col items-center'>
+        <div className='lg:flex-grow md:w-1/2 lg:pr-24 md:pr-16 flex flex-col md:items-start md:text-left mb-16 md:mb-0 items-center text-center'>
+          <h1 className='title-font sm:text-4xl text-3xl mb-4 font-medium text-gray-900'>
+            Hi, I'm {name}
+          </h1>
+          <p className='mb-8 leading-relaxed'>{bio}</p>
+          <div className='flex justify-center'>
+            <button className='inline-flex text-white bg-indigo-500 border-0 py-2 px-6 focus:outline-none hover:bg-indigo-600 rounded text-lg'>
+              Button
+            </button>
+            <button className='ml-4 inline-flex text-gray-700 bg-gray-100 border-0 py-2 px-6 focus:outline-none hover:bg-gray-200 rounded text-lg'>
+              Button
+            </button>
+          </div>
+        </div>
+        <div className='lg:max-w-lg lg:w-full md:w-1/2 w-5/6'>
+          <StaticImage
+            as='div'
+            className='lg:max-w-lg lg:w-full md:w-1/2 w-5/6'
+            src='../../assets/profilepic2.png'
+            imgClassName='object-cover object-center rounded'
+            alt='hero'
+            layout='constrained'
+            placeholder='tracedSVG'
+            width={720}
+          />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+
+ We simply import the component from Gatsby and implement it.There are several props that can be added to our component to change the image, let us look at the ones we implement
+
+-as: points to the HTML element used for the outer wrapper.
+-className: points to the CSS class to be applied to the outer wrapper.
+-alt: is an alternative text passed to the img tag for accessibility reasons.
+-layout: determines the size of the images output by the plugin and their resizing, with the following options available.
+-fixed: the image has a uniform size when rendered
+-constrained: assumes a maximum height or width and can be made smaller. 
+-fullWidth:resizes to fit the container, but is not constrained to the maximum height or width.
+-placeholder: used to tell the component what to display while the image is loaded; there are several options (blurred,dominantColor,none,tracedSVG).
+-width and height: used to specify the width and height of the image.
+
+Let us continue by creating an assets folder in our root folder. Inside this folder, we will create an images folder and store the image we will be using in our blogpost in that folder.
+Then, in all of our numberOfThePost-blog-post.md files, we will add the following fields to our frontmatter
+
+---
+title: Your Blog Title
+desc: Your Blog Description
+date: Your Date
+cover: ../../assets/images/name-of-your-cover-image
+category: Your Category
+---
+
+Then we go into our gatsby-config.js to tell Gatsby where to get the images from
+
+module.exports = {
+  siteMetadata: {
+    siteUrl: 'https://mywebsite.com',
+    name: 'Marco Rendine',
+    role: 'Nutritionist, researcher and trainer',
+    bio: "Hi i'm Marco Rendine a science nerd.",
+  },
+  plugins: [
+    `gatsby-plugin-postcss`,
+    `gatsby-transformer-remark`,
+    `gatsby-plugin-image`,
+    `gatsby-plugin-sharp`,
+    `gatsby-transformer-sharp`,
+    {
+      resolve: `gatsby-source-filesystem`,
+      options: {
+        name: `bio`,
+        path: `${__dirname}/MD/blog`,
+      },
+    },
+    {
+      resolve: `gatsby-source-filesystem`,
+      options: {
+        path: `${__dirname}/assets/images`,
+      },
+    },
+  ],
+}
+
+Then we go into our news component and first change our query to retrieve the image data, we need to keep in mind that most of the props we can use with StaticImage can also be used with GatsbyImage, but they need to be included in our query instead of being added directly to the component.From the Gatsby Image plugin, we will also use the getImage helper function, which allows us to return the gatsbyImageData directly from the Cover object.
+
+import React from 'react'
+import { graphql, useStaticQuery, Link } from 'gatsby'
+import { GatsbyImage, getImage } from 'gatsby-plugin-image'
+import { AiOutlineArrowRight } from 'react-icons/ai'
+
+export default function News() {
+  const data = useStaticQuery(graphql`
+    {
+      allMarkdownRemark(
+        limit: 3
+        sort: { fields: frontmatter___date, order: DESC }
+      ) {
+        nodes {
+          frontmatter {
+            category
+            date(formatString: "MMMM Do, YYYY")
+            desc
+            title
+            cover {
+              childImageSharp {
+                gatsbyImageData(width: 720, placeholder: BLURRED)
+              }
+            }
+          }
+          id
+        }
+      }
+    }
+  `)
+  const {
+    allMarkdownRemark: { nodes },
+  } = data
+  return (
+    <section className='text-gray-600 body-font'>
+      <div className='container px-5 py-24 mx-auto'>
+        <div className='flex flex-wrap -m-4'>
+          {nodes.map((post) => {
+            const {
+              frontmatter: { category, date, title, desc, id, cover },
+            } = post
+            const coverImg = getImage(cover)
+            return (
+              <div key={id} className='p-4 md:w-1/3'>
+                <div className='h-full border-2 border-gray-200 border-opacity-60 rounded-lg overflow-hidden'>
+                  <GatsbyImage
+                    imgClassName='lg:h-48 md:h-36 w-full object-cover object-center'
+                    image={coverImg}
+                    alt='blog cover image'
+                  />
+                  <div className='p-6'>
+                    <h2 className='tracking-widest text-xs title-font font-medium text-gray-400 mb-1'>
+                      {category.toUpperCase()}
+                    </h2>
+                    <h1 className='title-font text-lg font-medium text-gray-900 mb-3'>
+                      {title}
+                    </h1>
+                    <p className='leading-relaxed mb-3'>{desc}</p>
+                    <div className='flex items-center flex-wrap '>
+                      <Link
+                        to='/'
+                        className='text-indigo-500 inline-flex items-center md:mb-2 lg:mb-0'
+                      >
+                        Learn More
+                        <AiOutlineArrowRight className='w-4 h-4 ml-2' />
+                      </Link>
+                      <span className='text-gray-400 mr-3 inline-flex items-center lg:ml-auto md:ml-0 ml-auto leading-none text-sm pr-3 py-1 border-r-2 border-gray-200'>
+                        {date}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+
+Let us conclude our home page with a form that allows our visitors to email us using formspree. Formspree, at the time of writing this article, offers a free plan that allows you to receive 50 emails per month. After that, the service becomes paid, so if you do not agree with it, skip this part as your website will still work. Go to the formspree website and create a new account and verify the email you used to register your account by clicking on the link they send you.After that, you need to create a new project and give it the name you want, then create a new form and give it the name you want.Then we go into our project and install the formspree library by typing into the terminal 
+
+npm install @formspree/react
+
+All the code is in the integration menu in our account and we select the React snippet
+
+npm install @formspree/react
+
+All this code can be found inside the Integration menu inside our account and select the react snippet
+
+// Make sure to run npm install @formspree/react
+// For more help visit https://formspr.ee/react-help
+import React from 'react';
+import { useForm, ValidationError } from '@formspree/react';
+function ContactForm() {
+  const [state, handleSubmit] = useForm("your endpoint");
+  if (state.succeeded) {
+      return <p>Thanks for joining!</p>;
+  }
+  return (
+      <form onSubmit={handleSubmit}>
+      <label htmlFor="email">
+        Email Address
+      </label>
+      <input
+        id="email"
+        type="email" 
+        name="email"
+      />
+      <ValidationError 
+        prefix="Email" 
+        field="email"
+        errors={state.errors}
+      />
+      <textarea
+        id="message"
+        name="message"
+      />
+      <ValidationError 
+        prefix="Message" 
+        field="message"
+        errors={state.errors}
+      />
+      <button type="submit" disabled={state.submitting}>
+        Submit
+      </button>
+    </form>
+  );
+}
+function App() {
+  return (
+    <ContactForm />
+  );
+}
+export default App;
+
+The useForm hook is a hook from the formspree library that we call with our endpoint (in your dashboard's code, your endpoint will already be here) to connect our form to the formspree backend.
+
+If you want to learn more about formspree, you can visit their doc
+
+https://help.formspree.io/hc/en-us/articles/360055613373-The-Formspree-React-library
+
+Then we create our contact component in our component folder, to which we only need to add the following
+
+import React from 'react'
+import { useForm, ValidationError } from '@formspree/react'
+import {
+  AiFillFacebook,
+  AiOutlineTwitter,
+  AiFillInstagram,
+  AiFillLinkedin,
+} from 'react-icons/ai'
+
+export default function Contact() {
+  const [state, handleSubmit] = useForm('your-endpoint')
+  if (state.succeeded) {
+    return (
+      <section className='text-gray-600 body-font relative'>
+        <div className='container px-5 py-24 mx-auto'>
+          <div className='flex flex-col text-center w-full mb-12'>
+            <h1 className='sm:text-3xl text-2xl font-medium title-font mb-4 text-gray-900'>
+              Thanks for the message!
+            </h1>
+            <p className='lg:w-2/3 mx-auto leading-relaxed text-base'>
+              We will hit you back as soon as possible.
+            </p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+  return (
+    <section className='text-gray-600 body-font relative'>
+      <div className='container px-5 py-24 mx-auto'>
+        <div className='flex flex-col text-center w-full mb-12'>
+          <h1 className='sm:text-3xl text-2xl font-medium title-font mb-4 text-gray-900'>
+            Contact Us
+          </h1>
+          <p className='lg:w-2/3 mx-auto leading-relaxed text-base'>
+            Whatever cardigan tote bag tumblr hexagon brooklyn asymmetrical
+            gentrify.
+          </p>
+        </div>
+        <form onSubmit={handleSubmit} className='lg:w-1/2 md:w-2/3 mx-auto'>
+          <div className='flex flex-wrap -m-2'>
+            <div className='p-2 w-1/2'>
+              <div className='relative'>
+                <label
+                  htmlFor='name'
+                  className='leading-7 text-sm text-gray-600'
+                >
+                  Name
+                </label>
+                <input
+                  type='text'
+                  id='name'
+                  name='name'
+                  className='w-full bg-gray-100 bg-opacity-50 rounded border border-gray-300 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-200 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out'
+                />
+                <ValidationError
+                  prefix='Name'
+                  field='name'
+                  errors={state.errors}
+                />
+              </div>
+            </div>
+            <div className='p-2 w-1/2'>
+              <div className='relative'>
+                <label
+                  htmlFor='email'
+                  className='leading-7 text-sm text-gray-600'
+                >
+                  Email
+                </label>
+                <input
+                  type='email'
+                  id='email'
+                  name='email'
+                  className='w-full bg-gray-100 bg-opacity-50 rounded border border-gray-300 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-200 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out'
+                />
+              </div>
+            </div>
+            <div className='p-2 w-full'>
+              <div className='relative'>
+                <label
+                  htmlFor='message'
+                  className='leading-7 text-sm text-gray-600'
+                >
+                  Message
+                </label>
+                <textarea
+                  id='message'
+                  name='message'
+                  className='w-full bg-gray-100 bg-opacity-50 rounded border border-gray-300 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-200 h-32 text-base outline-none text-gray-700 py-1 px-3 resize-none leading-6 transition-colors duration-200 ease-in-out'
+                ></textarea>
+                <ValidationError
+                  prefix='Message'
+                  field='message'
+                  errors={state.errors}
+                />
+              </div>
+            </div>
+            <div className='p-2 w-full'>
+              <button
+                type='submit'
+                disabled={state.submitting}
+                className='flex mx-auto text-white bg-indigo-500 border-0 py-2 px-8 focus:outline-none hover:bg-indigo-600 rounded text-lg'
+              >
+                Button
+              </button>
+            </div>
+            <div className='p-2 w-full pt-8 mt-8 border-t border-gray-200 text-center'>
+              <p className='text-indigo-500'>example@email.com</p>
+              <p className='leading-normal my-5'>
+                49 Smith St.
+                <br />
+                Saint Cloud, MN 56301
+              </p>
+              <span className='inline-flex'>
+                <a href='https://www.facebook.com/' className='text-gray-500'>
+                  <AiFillFacebook className='w-5 h-5' />
+                </a>
+                <a href='https://twitter.com/' className='ml-4 text-gray-500'>
+                  <AiOutlineTwitter className='w-5 h-5' />
+                </a>
+                <a
+                  href='https://www.instagram.com/'
+                  className='ml-4 text-gray-500'
+                >
+                  <AiFillInstagram className='w-5 h-5' />
+                </a>
+                <a
+                  href='https://www.linkedin.com/'
+                  className='ml-4 text-gray-500'
+                >
+                  <AiFillLinkedin className='w-5 h-5' />
+                </a>
+              </span>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+  )
+}
+
+Let's import and render the component inside our HomePage component
+
+import React from 'react'
+import Hero from './Hero'
+import News from './News'
+import Contact from './Contact'
+
+function HomePage() {
+  return (
+    <>
+      <Hero />
+      <News />
+      <Contact />
+    </>
+  )
+}
+
+export default HomePage
+
+After that, if we try to use the form, we should get the message in the mail we used to register with formspree.
+That's it for this part, see you in part 6 where we will generate the other pages dynamically from our data.
